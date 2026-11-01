@@ -17,7 +17,7 @@ const branch = (over: Partial<Branch>): Branch => ({
   ...over,
 });
 
-const order = (over: Partial<Order>): Order => ({
+const order = (over: Partial<Order> = {}): Order => ({
   id: 'o-1',
   storeId: 's-1',
   city: 'Алматы',
@@ -63,7 +63,103 @@ test('geo: без координат заказ не распределяетс�
   assert.equal(res.rule, 'unassigned');
 });
 
-test.todo('pickup_point: пункт выдачи закреплён за филиалом');
-test.todo('city: в городе заказа один филиал магазина');
-test.todo('geo: если в городе несколько филиалов, выбирается ближайший из них');
-test.todo('лимит: заполненный филиал пропускается');
+
+test('pickup_point: пункт выдачи закреплён за филиалом', () => {
+  const pickupBranch = branch({
+    id: 'b-pickup',
+    pickupPointIds: ['pickup-1'],
+  });
+
+  const res = assignBranch(
+    order({ pickupPointId: 'pickup-1' }),
+    [almaty, pickupBranch]
+  );
+
+  assert.deepEqual(res, {
+  orderId: 'o-1',
+  branchId: 'b-pickup',
+  rule: 'pickup_point',
+});
+});
+
+test('city: в городе заказа один филиал магазина', () => {
+  const res = assignBranch(
+    order({ city: 'Астана' }),
+    [almaty, astana]
+  );
+
+  assert.deepEqual(res, {
+    orderId: 'o-1',
+    branchId: 'b-ast',
+    rule: 'city',
+  });
+});
+
+test('geo: если в городе несколько филиалов, выбирается ближайший из них', () => {
+  const nearby = branch({
+    id: 'b-near',
+    city: 'Алматы',
+    lat: 43.25,
+    lon: 76.92,
+  });
+
+  const far = branch({
+    id: 'b-far',
+    city: 'Алматы',
+    lat: 43.30,
+    lon: 76.98,
+  });
+
+  const res = assignBranch(
+    order(),
+    [nearby, far, astana]
+  );
+
+  assert.deepEqual(res, {
+    orderId: 'o-1',
+    branchId: 'b-near',
+    rule: 'geo',
+  });
+});
+
+test('лимит: заполненный филиал пропускается', () => {
+  const fullBranch = branch({
+    id: 'b-full',
+    dailyLimit: 1,
+    lat: 43.25,
+    lon: 76.92,
+  });
+
+  const availableBranch = branch({
+    id: 'b-available',
+    dailyLimit: 10,
+    lat: 43.26,
+    lon: 76.93,
+  });
+
+  const previousOrder = order({
+    id: 'o-previous',
+    createdAt: '2026-11-16T06:00:00Z',
+  });
+
+  const existingAssignments = new Map([
+    ['o-previous', {
+      orderId: 'o-previous',
+      branchId: 'b-full',
+      rule: 'geo' as const,
+    }],
+  ]);
+
+  const res = assignBranch(
+    order(),
+    [fullBranch, availableBranch],
+    [previousOrder],
+    existingAssignments
+  );
+
+  assert.deepEqual(res, {
+    orderId: 'o-1',
+    branchId: 'b-available',
+    rule: 'geo',
+  });
+});
