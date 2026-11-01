@@ -34,12 +34,7 @@ export function assignBranch(
       (b) => getBranchLoad(b.id, date, orders, assignments) < b.dailyLimit
     );
 
-    const cityBranches = own.filter((b) => b.city === order.city);
-    const candidates = cityBranches.length > 1
-      ? available.filter((b) => b.city === order.city)
-      : available;
-
-    const nearest = findNearest(order, candidates);
+    const nearest = findNearest(order, available);
 
     if (!nearest) return result(null, 'unassigned');
     if (nearest.distance > MAX_DISTANCE_KM) return result(null, 'too_far');

@@ -79,7 +79,7 @@ test('pickup_point: пункт выдачи закреплён за филиал
   orderId: 'o-1',
   branchId: 'b-pickup',
   rule: 'pickup_point',
-});
+  });
 });
 
 test('city: в городе заказа один филиал магазина', () => {
@@ -160,6 +160,49 @@ test('лимит: заполненный филиал пропускается',
   assert.deepEqual(res, {
     orderId: 'o-1',
     branchId: 'b-available',
+    rule: 'geo',
+  });
+});
+test('лимит: при заполнении филиала выбирается свободный филиал другого города', () => {
+  const fullBranch = branch({
+    id: 'b-full',
+    city: 'РђР»РјР°С‚С‹',
+    dailyLimit: 1,
+    lat: 43.25,
+    lon: 76.92,
+  });
+
+  const availableBranch = branch({
+    id: 'b-astana',
+    city: 'РђСЃС‚Р°РЅР°',
+    dailyLimit: 10,
+    lat: 43.26,
+    lon: 76.93,
+  });
+
+  const previousOrder = order({
+    id: 'o-previous',
+    createdAt: '2026-11-16T06:00:00Z',
+  });
+
+  const existingAssignments = new Map([
+    ['o-previous', {
+      orderId: 'o-previous',
+      branchId: 'b-full',
+      rule: 'geo' as const,
+    }],
+  ]);
+
+  const res = assignBranch(
+    order(),
+    [fullBranch, availableBranch],
+    [previousOrder],
+    existingAssignments
+  );
+
+  assert.deepEqual(res, {
+    orderId: 'o-1',
+    branchId: 'b-astana',
     rule: 'geo',
   });
 });

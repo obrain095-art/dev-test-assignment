@@ -6,7 +6,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test task-1-dispatch/test/*.test.ts task-2-booking/test/*.test.ts",
+    "test": "node --test --test-concurrency=1 task-1-dispatch/test/*.test.ts task-2-booking/test/*.test.ts",
     "test:dispatch": "node --test task-1-dispatch/test/*.test.ts",
     "test:booking": "node --test task-2-booking/test/*.test.ts",
     "typecheck": "tsc",
